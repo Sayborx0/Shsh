@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Saymodz CHAT</title>
+<style>
+:root {
+    --bg-dark: #0f1115; --bg-panel: #1a1d24; --bg-card: #23262f; --bg-hover: #2a2e3a;
+    --border: #2e323d; --border-soft: #3a3f4d; --accent: #5c7cfa; --accent-soft: #7b8fff;
+    --accent-glow: rgba(92,124,250,0.3); --text: #e8eaf0; --text-sub: #8a8f9c;
+    --text-muted: #5a5f6b; --danger: #f75b5b; --success: #4ade80;
+    --warning: #fbbf24; --admin: #fbbf24; --mod: #22c55e;
+}
+body[data-theme="purple"] { --accent: #a855f7; --accent-soft: #c084fc; --accent-glow: rgba(168,85,247,0.3); }
+body[data-theme="green"] { --accent: #22c55e; --accent-soft: #4ade80; --accent-glow: rgba(34,197,94,0.3); }
+body[data-theme="red"] { --accent: #ef4444; --accent-soft: #f87171; --accent-glow: rgba(239,68,68,0.3); }
+body[data-theme="orange"] { --accent: #f97316; --accent-soft: #fb923c; --accent-glow: rgba(249,115,22,0.3); }
+body[data-theme="pink"] { --accent: #ec4899; --accent-soft: #f472b6; --accent-glow: rgba(236,72,153,0.3); }
+body[data-theme="cyan"] { --accent: #06b6d4; --accent-soft: #22d3ee; --accent-glow: rgba(6,182,212,0.3); }
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; font-size: 10px; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-dark); color: var(--text); }
+
+.auth-overlay { position: fixed; inset: 0; z-index: 9999; background: linear-gradient(135deg, #0f1115 0%, #1a1d24 100%); display: none; flex-direction: column; justify-content: center; align-items: center; padding: 10px; }
+.auth-overlay.show { display: flex; }
+.auth-box { width: 100%; max-width: 220px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 20px var(--accent-glow); }
+.auth-logo { text-align: center; font-size: 15px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent-soft)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 2px; }
+.auth-sub { text-align: center; font-size: 8px; color: var(--text-sub); margin-bottom: 10px; }
+.inp { width: 100%; padding: 6px 8px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text); margin-bottom: 5px; outline: none; font-size: 9px; }
+.inp:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.btn { width: 100%; padding: 7px; background: linear-gradient(135deg, var(--accent), var(--accent-soft)); border: none; border-radius: 6px; color: #fff; font-weight: 700; font-size: 9px; cursor: pointer; margin-top: 3px; }
+.btn-secondary { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-sub); }
+.btn:disabled { opacity: 0.5; }
+.toggle-auth { margin-top: 8px; text-align: center; font-size: 8px; color: var(--text-sub); cursor: pointer; }
+.toggle-auth span { color: var(--accent); font-weight: 600; }
+.error-msg { background: rgba(247,91,91,0.15); border: 1px solid var(--danger); color: var(--danger); padding: 4px 7px; border-radius: 5px; font-size: 8px; margin-bottom: 6px; display: none; }
+.error-msg.show { display: block; }
+.saved-account-card { background: var(--bg-card); border: 1px solid var(--accent); border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 10px; }
+.saved-account-name { font-size: 11px; font-weight: 700; color: var(--accent-soft); margin: 4px 0; }
+
+#app { display: none; width: 100vw; height: 100vh; }
+#app.active { display: flex; }
+
+.sidebar { width: 40px; height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 6px 0; gap: 4px; flex-shrink: 0; }
+.side-item { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; background: transparent; border: 1px solid transparent; color: var(--text-sub); transition: 0.2s; position: relative; }
+.side-item.active { background: var(--accent); color: #fff; border-color: var(--accent-soft); }
+.side-item.settings-item { margin-top: auto; border-color: var(--border); background: var(--bg-card); }
+.badge { position: absolute; top: 0; right: 0; min-width: 11px; height: 11px; background: var(--danger); color: #fff; font-size: 7px; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; padding: 0 2px; border: 1.5px solid var(--bg-panel); }
+
+.main-container { flex: 1; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { height: 34px; background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 8px; flex-shrink: 0; gap: 6px; }
+.topbar-info { display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+.topbar-title { font-size: 10.5px; font-weight: 700; }
+.topbar-sub { font-size: 8px; color: var(--text-sub); }
+
+.content-row { flex: 1; display: flex; overflow: hidden; }
+.content { flex: 1; overflow: hidden; position: relative; }
+.panel { display: none; width: 100%; height: 100%; flex-direction: column; }
+.panel.active { display: flex; }
+
+.right-sidebar { width: 110px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+.right-sidebar-title { padding: 6px 8px; font-size: 9px; font-weight: 700; color: var(--text-sub); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+.right-sidebar-list { flex: 1; overflow-y: auto; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+.right-sidebar-list::-webkit-scrollbar { width: 3px; }
+.right-sidebar-list::-webkit-scrollbar-thumb { background: var(--border); }
+.kanal-btn { padding: 6px 7px; border-radius: 6px; font-size: 9.5px; cursor: pointer; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-sub); transition: 0.2s; display: flex; align-items: center; gap: 4px; word-break: break-word; }
+.kanal-btn:hover { background: var(--bg-hover); color: var(--text); }
+.kanal-btn.active { background: var(--accent); color: #fff; border-color: var(--accent-soft); }
+.kanal-btn .lock { font-size: 8px; }
+.right-sidebar-header { padding: 4px; border-top: 1px solid var(--border); display: flex; gap: 2px; }
+.right-sidebar-header input { flex: 1; font-size: 8px; padding: 4px 6px; }
+.right-sidebar-header button { font-size: 9px; padding: 4px 6px; }
+.kanallar-empty { font-size: 8px; color: var(--text-muted); text-align: center; padding: 8px 4px; }
+
+.chat-body { flex: 1; padding: 6px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.chat-body::-webkit-scrollbar { width: 3px; }
+.chat-body::-webkit-scrollbar-thumb { background: var(--border); }
+.empty-state { text-align: center; color: var(--text-muted); padding: 25px 12px; font-size: 9.5px; }
+.msg-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 3px 7px; max-width: 72%; align-self: flex-start; position: relative; font-size: 10px; }
+.msg-box.self { align-self: flex-end; background: linear-gradient(135deg, rgba(92,124,250,0.25), rgba(92,124,250,0.15)); border-color: var(--accent); }
+.msg-box.admin-msg { border-color: var(--admin); box-shadow: 0 0 8px rgba(251,191,36,0.25); background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05)); }
+.msg-box.mod-msg { border-color: var(--mod); box-shadow: 0 0 8px rgba(34,197,94,0.2); }
+.msg-box.glow-msg { border-color: var(--accent); animation: msgGlow 2s ease-in-out infinite; }
+@keyframes msgGlow { 0%,100% { box-shadow: 0 0 4px var(--accent); } 50% { box-shadow: 0 0 15px var(--accent); } }
+.msg-head { display: flex; align-items: center; gap: 3px; font-size: 8px; margin-bottom: 1px; }
+.msg-user { font-weight: 700; color: var(--accent-soft); cursor: pointer; }
+.msg-user.admin { color: var(--admin); animation: adminGlow 2s ease-in-out infinite; }
+.msg-user.mod { color: var(--mod); }
+.msg-user.glowing { text-shadow: 0 0 5px currentColor; animation: textGlow 1.5s ease-in-out infinite; }
+@keyframes adminGlow { 0%,100% { filter: drop-shadow(0 0 2px var(--admin)); } 50% { filter: drop-shadow(0 0 6px var(--admin)); } }
+@keyframes textGlow { 0%,100% { text-shadow: 0 0 3px currentColor; } 50% { text-shadow: 0 0 10px currentColor; } }
+.msg-crown { font-size: 9px; }
+.msg-time { color: var(--text-muted); margin-left: auto; font-size: 7px; }
+.msg-text { font-size: 10.5px; word-break: break-word; line-height: 1.3; }
+.msg-reply-info { background: rgba(92,124,250,0.1); border-left: 2px solid var(--accent); padding: 2px 5px; border-radius: 3px; margin-bottom: 2px; font-size: 8px; }
+.msg-actions { display: none; position: absolute; top: -5px; right: 4px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 5px; padding: 1px; gap: 1px; }
+.msg-box:hover .msg-actions { display: flex; }
+.msg-action { background: none; border: none; color: var(--text-sub); cursor: pointer; padding: 2px 4px; border-radius: 3px; font-size: 9px; }
+.msg-action:hover { background: var(--bg-hover); color: var(--danger); }
+.reply-preview { background: rgba(92,124,250,0.15); border-left: 2px solid var(--accent); padding: 3px 6px; font-size: 8px; color: var(--text-sub); display: none; margin: 0 6px; border-radius: 3px; }
+.reply-preview.show { display: block; }
+.reply-preview .close-reply { float: right; cursor: pointer; color: var(--danger); }
+.sys-msg { text-align: center; color: var(--warning); font-size: 9px; font-style: italic; padding: 3px 0; }
+
+.input-bar { padding: 5px 7px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.input-bar .inp { margin: 0; padding: 6px 10px; border-radius: 16px; font-size: 10px; }
+.send-btn { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-soft)); border: none; color: #fff; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+.locked-chat { width: 100%; text-align: center; color: var(--text-muted); font-size: 10px; padding: 8px; }
+
+.list-header { padding: 7px 9px; background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; gap: 4px; flex-shrink: 0; }
+.list-header .inp { margin: 0; padding: 5px 8px; font-size: 9px; }
+.list-header .btn { width: auto; padding: 5px 10px; font-size: 9px; white-space: nowrap; }
+.list-area { flex: 1; padding: 6px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.list-area::-webkit-scrollbar { width: 3px; }
+.list-area::-webkit-scrollbar-thumb { background: var(--border); }
+.row-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); padding: 6px 9px; border-radius: 8px; border: 1px solid var(--border); font-size: 10px; }
+.row-avatar { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 10px; flex-shrink: 0; margin-right: 7px; cursor: pointer; }
+.row-avatar.glowing { animation: msgGlow 2s ease-in-out infinite; }
+.row-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; cursor: pointer; }
+.row-name { font-weight: 600; font-size: 10px; }
+.row-name.glowing { text-shadow: 0 0 5px currentColor; }
+.row-sub { font-size: 8px; color: var(--text-sub); }
+.row-actions { display: flex; gap: 3px; }
+.mini-btn { padding: 3px 7px; background: var(--accent); border: none; border-radius: 5px; color: #fff; font-size: 8px; font-weight: 600; cursor: pointer; }
+.mini-btn.danger { background: var(--danger); }
+.mini-btn.success { background: var(--success); color: #000; }
+.mini-btn.warning { background: var(--warning); color: #000; }
+
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; padding: 10px; }
+.modal.active { display: flex; }
+.modal-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 320px; max-height: 88vh; display: flex; flex-direction: column; }
+.modal-head { padding: 10px 12px; background: var(--bg-card); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; border-radius: 12px 12px 0 0; }
+.modal-close { background: none; border: none; color: var(--text-sub); font-size: 16px; cursor: pointer; }
+.modal-body { flex: 1; padding: 10px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 7px; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 10px; }
+.setting-row:last-child { border-bottom: none; }
+.setting-label { color: var(--text-sub); }
+.setting-value { color: var(--text); font-weight: 600; }
+
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 8px; font-size: 10px; font-weight: 600; z-index: 10000; transition: 0.3s; opacity: 0; pointer-events: none; max-width: 90%; text-align: center; }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.success { border-color: var(--success); }
+.toast.error { border-color: var(--danger); }
+.toast.warning { border-color: var(--warning); }
+
+.loading { display: flex; justify-content: center; align-items: center; padding: 20px; color: var(--text-muted); gap: 6px; font-size: 9.5px; }
+.spinner { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.profile-header { display: flex; flex-direction: column; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.profile-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 18px; margin-bottom: 6px; }
+.profile-avatar.glowing { animation: msgGlow 2s ease-in-out infinite; }
+.profile-name { font-size: 12px; font-weight: 700; }
+.profile-name.glowing { text-shadow: 0 0 8px currentColor; animation: textGlow 1.5s ease-in-out infinite; }
+.profile-role { font-size: 9px; margin-top: 2px; }
+.profile-role.admin { color: var(--admin); font-weight: 700; }
+.profile-role.mod { color: var(--mod); font-weight: 700; }
+.profile-info { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; }
+.profile-info-row { display: flex; justify-content: space-between; font-size: 10px; }
+
+.theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 5px; }
+.theme-dot { height: 26px; border-radius: 7px; cursor: pointer; border: 2px solid transparent; }
+.theme-dot.active { border-color: #fff; }
+
+.admin-panel { background: linear-gradient(135deg, rgba(251,191,36,0.1), rgba(251,191,36,0.03)); border: 1px solid var(--admin); border-radius: 8px; padding: 8px; margin-bottom: 6px; }
+.admin-panel-title { color: var(--admin); font-weight: 700; font-size: 10px; margin-bottom: 5px; }
+
+.role-picker { display: flex; gap: 5px; margin-top: 5px; }
+.role-option { flex: 1; padding: 6px; text-align: center; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; font-size: 9px; font-weight: 600; }
+.role-option.admin { border-color: var(--admin); color: var(--admin); }
+.role-option.mod { border-color: var(--mod); color: var(--mod); }
+.role-option.user { border-color: var(--accent); color: var(--accent); }
+
+.admin-user-row { display: flex; align-items: center; gap: 6px; padding: 5px 7px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 7px; font-size: 9.5px; }
+.admin-user-row .info { flex: 1; overflow: hidden; }
+.admin-user-row .u-name { font-weight: 600; font-size: 10px; }
+.admin-user-row .u-sub { font-size: 8px; color: var(--text-sub); }
+.admin-user-row .actions { display: flex; gap: 2px; flex-wrap: wrap; justify-content: flex-end; }
+.admin-user-row .actions button { padding: 2px 5px; font-size: 7.5px; }
+
+.group-checkbox { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="authScreen" class="auth-overlay">
+    <div class="auth-box">
+        <div class="auth-logo">Saymodz CHAT</div>
+        <div class="auth-sub" id="authSub">Giriş Yap</div>
+        <div id="errorBox" class="error-msg"></div>
+
+        <div id="savedAccountPrompt" style="display:none;" class="saved-account-card">
+            <div style="font-size:8px; color:var(--text-sub);">Kayıtlı Oturum Bulundu</div>
+            <div id="savedAccountName" class="saved-account-name">...</div>
+            <button class="btn" onclick="confirmSavedLogin()">Giriş Yap</button>
+            <button class="btn btn-secondary" onclick="switchAccountPrompt()">Başka Hesaba Geç</button>
+        </div>
+
+        <div id="authFormFields">
+            <input type="text" id="authU" class="inp" placeholder="Kullanıcı Adı">
+            <input type="password" id="authP" class="inp" placeholder="Şifre">
+            <button class="btn" id="authBtn" onclick="handleAuth()">Giriş Yap</button>
+            <div class="toggle-auth" onclick="toggleAuthMode()">
+                <span id="toggleTxt">Hesabın yok mu? <b>Kayıt Ol</b></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="app">
+    <div class="sidebar">
+        <div class="side-item active" data-tab="chat" onclick="goGeneral()" title="Genel Sohbet">💬</div>
+        <div class="side-item" data-tab="friends" onclick="switchTab('friends', this)" title="Kişiler">👥
+            <div class="badge" id="friendBadge" style="display:none;">0</div>
+        </div>
+        <div class="side-item" data-tab="dms" onclick="switchTab('dms', this)" title="Mesajlar">✉️</div>
+        <div class="side-item" data-tab="groups" onclick="switchTab('groups', this)" title="Gruplar">👨‍👩‍👦</div>
+        <div class="side-item settings-item" onclick="openModal('settingsModal')" title="Ayarlar">⚙️</div>
+    </div>
+
+    <div class="main-container">
+        <div class="topbar">
+            <div class="topbar-info">
+                <div class="topbar-title" id="panelTitle">#genel</div>
+                <div class="topbar-sub" id="panelSub">Sohbet kanalı</div>
+            </div>
+        </div>
+
+        <div class="content-row">
+            <div class="content">
+                <div id="chatPanel" class="panel active">
+                    <div class="chat-body" id="messagesList"><div class="loading"><div class="spinner"></div>Yükleniyor...</div></div>
+                    <div class="reply-preview" id="replyPreview">
+                        <span class="close-reply" onclick="cancelReply()">✕</span>
+                        <b id="replyUser"></b>: <span id="replyText"></span>
+                    </div>
+                    <div class="input-bar" id="inputBar">
+                        <input type="text" id="chatInput" class="inp" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter') sendMsg()">
+                        <button class="send-btn" id="sendBtn" onclick="sendMsg()">➤</button>
+                    </div>
+                </div>
+
+                <div id="friendsPanel" class="panel">
+                    <div class="list-header">
+                        <input type="text" id="friendInp" class="inp" placeholder="Kullanıcı adı">
+                        <button class="btn" onclick="addFriend()">+ Ekle</button>
+                    </div>
+                    <div class="list-area" id="friendsList"></div>
+                </div>
+
+                <div id="dmsPanel" class="panel"><div class="list-area" id="dmsList"></div></div>
+
+                <div id="groupsPanel" class="panel">
+                    <div class="list-header"><button class="btn" onclick="openGroupCreate()">+ Yeni Grup</button></div>
+                    <div class="list-area" id="groupsList"></div>
+                </div>
+            </div>
+
+            <div class="right-sidebar">
+                <div class="right-sidebar-title">📢 Kanallar</div>
+                <div class="right-sidebar-list" id="rightKanallarList"></div>
+                <div class="right-sidebar-header" id="kanalAddHeader" style="display:none;">
+                    <input type="text" id="newKanalInp" class="inp" placeholder="Kanal adı">
+                    <button class="btn" onclick="addKanal()">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="settingsModal" class="modal">
+    <div class="modal-box">
+        <div class="modal-head"><span>⚙️ Ayarlar</span><button class="modal-close" onclick="closeModal('settingsModal')">✕</button></div>
+        <div class="modal-body">
+            <div class="setting-row"><span class="setting-label">Kullanıcı</span><span class="setting-value" id="settingsUser">-</span></div>
+            <div class="setting-row"><span class="setting-label">Rol</span><span class="setting-value" id="settingsRole">Kullanıcı</span></div>
+            <div class="setting-row"><span class="setting-label">Katılma</span><span class="setting-value" id="settingsDate">-</span></div>
+            <div class="setting-row"><span class="setting-label">Mesaj</span><span class="setting-value" id="settingsMsgCount">0</span></div>
+
+            <div style="margin-top:6px;">
+                <div class="setting-label" style="margin-bottom:4px;">🎨 Tema</div>
+                <div class="theme-grid">
+                    <div class="theme-dot" data-theme="blue" style="background:linear-gradient(135deg,#5c7cfa,#7b8fff);" onclick="setTheme('blue')"></div>
+                    <div class="theme-dot" data-theme="purple" style="background:linear-gradient(135deg,#a855f7,#c084fc);" onclick="setTheme('purple')"></div>
+                    <div class="theme-dot" data-theme="green" style="background:linear-gradient(135deg,#22c55e,#4ade80);" onclick="setTheme('green')"></div>
+                    <div class="theme-dot" data-theme="red" style="background:linear-gradient(135deg,#ef4444,#f87171);" onclick="setTheme('red')"></div>
+                    <div class="theme-dot" data-theme="orange" style="background:linear-gradient(135deg,#f97316,#fb923c);" onclick="setTheme('orange')"></div>
+                    <div class="theme-dot" data-theme="pink" style="background:linear-gradient(135deg,#ec4899,#f472b6);" onclick="setTheme('pink')"></div>
+                    <div class="theme-dot" data-theme="cyan" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);" onclick="setTheme('cyan')"></div>
+                </div>
+            </div>
+
+            <div id="adminPanel" style="display:none; margin-top:10px;">
+                <div class="admin-panel">
+                    <div class="admin-panel-title">👑 Yönetim Paneli</div>
+                    <button class="btn" style="margin-bottom:4px;" onclick="closeModal('settingsModal'); openModal('adminModal')">🔧 Admin Paneli Aç</button>
+                </div>
+            </div>
+
+            <button class="btn" style="background:var(--danger); margin-top:8px;" onclick="logout()">🚪 Oturumu Kapat</button>
+        </div>
+    </div>
+</div>
+
+<div id="adminModal" class="modal">
+    <div class="modal-box" style="max-width:380px;">
+        <div class="modal-head"><span>👑 Yönetim Paneli</span><button class="modal-close" onclick="closeModal('adminModal')">✕</button></div>
+        <div class="modal-body">
+            <div style="display:flex;gap:4px;margin-bottom:6px;">
+                <button class="mini-btn" id="atab-users" onclick="adminTab('users')">👥 Kullanıcılar</button>
+                <button class="mini-btn" id="atab-settings" onclick="adminTab('settings')">⚙️ Ayarlar</button>
+                <button class="mini-btn" id="atab-appearance" onclick="adminTab('appearance')">🎨 Görünüm</button>
+            </div>
+            <div id="admin-tab-users">
+                <input type="text" id="adminSearchUser" class="inp" placeholder="🔍 Kullanıcı ara..." oninput="renderAdminUsers()">
+                <div id="adminUserList" style="display:flex;flex-direction:column;gap:5px;max-height:400px;overflow-y:auto;margin-top:6px;"></div>
+            </div>
+            <div id="admin-tab-settings" style="display:none;">
+                <div class="admin-panel">
+                    <div class="admin-panel-title">🛡️ Genel Ayarlar</div>
+                    <div class="setting-label" style="margin-bottom:4px;">Küfür Filtresi</div>
+                    <select id="cfgProfanity" class="inp" onchange="saveConfig('profanity', this.value)">
+                        <option value="on">Açık ✅</option>
+                        <option value="off">Kapalı ❌</option>
+                    </select>
+                    <div class="setting-label" style="margin:6px 0 4px 0;">Kullanıcı Kaydı</div>
+                    <select id="cfgRegister" class="inp" onchange="saveConfig('registration', this.value)">
+                        <option value="on">Açık ✅</option>
+                        <option value="off">Kapalı ❌</option>
+                    </select>
+                </div>
+                <div class="admin-panel">
+                    <div class="admin-panel-title">📢 Duyuru Gönder</div>
+                    <input type="text" id="announcementText" class="inp" placeholder="Duyuru metni..." style="margin-bottom:4px;">
+                    <button class="btn" style="background:var(--warning); color:#000;" onclick="sendAnnouncement()">📢 Gönder</button>
+                </div>
+            </div>
+            <div id="admin-tab-appearance" style="display:none;">
+                <div class="admin-panel">
+                    <div class="admin-panel-title">🎨 Varsayılan Tema</div>
+                    <div class="theme-grid">
+                        <div class="theme-dot" data-theme="blue" style="background:linear-gradient(135deg,#5c7cfa,#7b8fff);" onclick="saveConfig('defaultTheme', 'blue')"></div>
+                        <div class="theme-dot" data-theme="purple" style="background:linear-gradient(135deg,#a855f7,#c084fc);" onclick="saveConfig('defaultTheme', 'purple')"></div>
+                        <div class="theme-dot" data-theme="green" style="background:linear-gradient(135deg,#22c55e,#4ade80);" onclick="saveConfig('defaultTheme', 'green')"></div>
+                        <div class="theme-dot" data-theme="red" style="background:linear-gradient(135deg,#ef4444,#f87171);" onclick="saveConfig('defaultTheme', 'red')"></div>
+                        <div class="theme-dot" data-theme="orange" style="background:linear-gradient(135deg,#f97316,#fb923c);" onclick="saveConfig('defaultTheme', 'orange')"></div>
+                        <div class="theme-dot" data-theme="pink" style="background:linear-gradient(135deg,#ec4899,#f472b6);" onclick="saveConfig('defaultTheme', 'pink')"></div>
+                        <div class="theme-dot" data-theme="cyan" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);" onclick="saveConfig('defaultTheme', 'cyan')"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="userDetailModal" class="modal">
+    <div class="modal-box">
+        <div class="modal-head"><span>👤 Kullanıcı Yönetimi</span><button class="modal-close" onclick="closeModal('userDetailModal')">✕</button></div>
+        <div class="modal-body" id="userDetailBody"></div>
+    </div>
+</div>
+
+<div id="profileModal" class="modal">
+    <div class="modal-box">
+        <div class="modal-head"><span>👤 Profil</span><button class="modal-close" onclick="closeModal('profileModal')">✕</button></div>
+        <div class="modal-body" id="profileBody"></div>
+    </div>
+</div>
+
+<div id="muteModal" class="modal">
+    <div class="modal-box" style="max-width:280px;">
+        <div class="modal-head"><span id="muteTitle">🔇 Ceza Ver</span><button class="modal-close" onclick="closeModal('muteModal')">✕</button></div>
+        <div class="modal-body">
+            <div style="font-size:9px;color:var(--text-sub);margin-bottom:4px;">Süre (dakika):</div>
+            <input type="number" id="muteDuration" class="inp" value="60">
+            <div style="display:flex;gap:3px;flex-wrap:wrap;margin:4px 0;">
+                <button class="mini-btn" onclick="document.getElementById('muteDuration').value=5">5 dk</button>
+                <button class="mini-btn" onclick="document.getElementById('muteDuration').value=30">30 dk</button>
+                <button class="mini-btn" onclick="document.getElementById('muteDuration').value=60">1 saat</button>
+                <button class="mini-btn" onclick="document.getElementById('muteDuration').value=1440">1 gün</button>
+                <button class="mini-btn" onclick="document.getElementById('muteDuration').value=10080">1 hafta</button>
+                <button class="mini-btn" onclick="document.getElementById('muteDuration').value=0">Süresiz</button>
+            </div>
+            <input type="text" id="muteReason" class="inp" placeholder="Sebep">
+            <button class="btn" style="background:var(--warning);color:#000;" onclick="applyMute()">🔇 Sustur</button>
+            <button class="btn" style="background:var(--danger);" onclick="applyBan()">🚫 Banla</button>
+        </div>
+    </div>
+</div>
+
+<div id="roleModal" class="modal">
+    <div class="modal-box" style="max-width:280px;">
+        <div class="modal-head"><span>🎭 Rol Ver</span><button class="modal-close" onclick="closeModal('roleModal')">✕</button></div>
+        <div class="modal-body">
+            <div style="font-size:9px;color:var(--text-sub);margin-bottom:5px;"><b id="roleTargetName"></b> kullanıcısına rol:</div>
+            <div class="role-picker">
+                <div class="role-option user" onclick="setRole('user')">👤 Kullanıcı</div>
+                <div class="role-option mod" onclick="setRole('mod')">🛡️ Mod</div>
+                <div class="role-option admin" onclick="setRole('admin')">👑 Admin</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="groupCreateModal" class="modal">
+    <div class="modal-box">
+        <div class="modal-head"><span>👨‍👩‍👦 Grup Kur</span><button class="modal-close" onclick="closeModal('groupCreateModal')">✕</button></div>
+        <div class="modal-body">
+            <input type="text" id="groupNameInp" class="inp" placeholder="Grup adı">
+            <div style="font-size:9px;color:var(--text-sub);margin:4px 0;">Arkadaşlarını seç:</div>
+            <div id="groupFriendList" style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;"></div>
+            <button class="btn" onclick="createGroup()">✅ Grup Kur</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile }
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, push, onValue, set, remove, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// 🔥 YENİ FIREBASE CONFIG (saymodzzs)
+const firebaseConfig = {
+    apiKey: "AIzaSyDl1RKUOOKTfeb_7JAla_9AGO69hBrjbbs",
+    authDomain: "saymodzzs.firebaseapp.com",
+    databaseURL: "https://saymodzzs-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "saymodzzs",
+    storageBucket: "saymodzzs.firebasestorage.app",
+    messagingSenderId: "528853508943",
+    appId: "1:528853508943:web:cf72cea6bc08da10739b3a"
+};
+
+const ADMIN_USERNAME = "Saymodz";
+const BAD_WORDS = ["amk","aq","orospu","oç","oc","siktir","sikeyim","sik","yarrak","yarak","pic","piç","göt","got","amcık","amcik","pezevenk","kaltak","fahişe","fahise","şerefsiz","serefsiz","hıyar","hiyar","yavşak","yavsak","gerizekalı","gerizekali","salak","aptal","angut","dangalak","sikik","sikerim","sikecem","sokuk","yarram"];
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentUser = null, currentUsername = null, isAdmin = false, isMod = false;
+let currentKanal = 'genel', dmTarget = null, groupTarget = null;
+let isRegister = false;
+let pendingUser = null;
+let initialLoadMessages = true;
+let allUsers = [], myFriends = [], allKanallar = [], myGroups = [];
+let mutedUsers = {}, bannedUsers = {}, glowingUsers = {}, serverConfig = {};
+let unsubMessages = null, unsubKanallar = null, unsubFriends = null, unsubUsers = null, unsubDMs = null, unsubMuted = null, unsubGroups = null, unsubGlow = null, unsubConfig = null;
+let muteTarget = null, roleTarget = null, replyTo = null;
+
+function userToEmail(u) { return u.toLowerCase().replace(/[^a-z0-9]/g, '') + "@saymodz.chat"; }
+function showToast(msg, type = '') { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show ' + type; setTimeout(() => t.className = 'toast ' + type, 2500); }
+function showError(msg) { const box = document.getElementById('errorBox'); box.textContent = msg; box.classList.add('show'); setTimeout(() => box.classList.remove('show'), 4000); }
+function escapeHtml(str) { if (!str) return ''; return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+function getInitials(n) { return n ? n.substring(0, 2).toUpperCase() : '?'; }
+
+function formatTime(ts) {
+    const d = new Date(ts), now = new Date(), diff = now - d;
+    if (diff < 60000) return 'şimdi';
+    if (diff < 3600000) return Math.floor(diff/60000) + ' dk';
+    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+}
+
+function containsBadWord(text) {
+    if (!text) return false;
+    if (serverConfig.profanity === 'off') return false;
+    const lower = text.toLowerCase().replace(/[.,!?;:*_\-]/g, '')
+        .replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c');
+    for (const w of BAD_WORDS) if (lower.includes(w)) return true;
+    return false;
+}
+
+function isMuted(u) {
+    const m = mutedUsers[u];
+    if (!m) return false;
+    if (m.until === 0) return true;
+    if (m.until && m.until > Date.now()) return true;
+    if (m.until && m.until <= Date.now()) { remove(ref(db, 'muted/' + u)); return false; }
+    return true;
+}
+
+function isBanned(u) {
+    const b = bannedUsers[u];
+    if (!b) return false;
+    if (b.until === 0) return true;
+    if (b.until && b.until > Date.now()) return true;
+    if (b.until && b.until <= Date.now()) { remove(ref(db, 'banned/' + u)); return false; }
+    return true;
+}
+
+function isGlowing(u) { return glowingUsers[u] === true; }
+
+async function systemMessage(text) {
+    await push(ref(db, 'messages'), {
+        sender: '📢 Sistem', senderUid: 'system', text: text,
+        kanal: 'genel', time: Date.now(), isSystem: true
+    });
+}
+
+window.toggleAuthMode = function() {
+    isRegister = !isRegister;
+    document.getElementById('authSub').innerText = isRegister ? "Kayıt Ol" : "Giriş Yap";
+    document.getElementById('authBtn').innerText = isRegister ? "Kayıt Ol" : "Giriş Yap";
+    document.getElementById('toggleTxt').innerHTML = isRegister ? "Hesabın var mı? <b>Giriş Yap</b>" : "Hesabın yok mu? <b>Kayıt Ol</b>";
+};
+
+window.handleAuth = async function() {
+    const u = document.getElementById('authU').value.trim();
+    const p = document.getElementById('authP').value;
+    if (!u || !p) return showError("Bilgileri doldur!");
+    if (p.length < 6) return showError("Şifre en az 6 karakter!");
+    if (!/^[a-zA-Z0-9_]+$/.test(u)) return showError("Sadece harf, rakam ve _ kullan!");
+    if (containsBadWord(u)) return showError("Bu isim uygun değil!");
+
+    const btn = document.getElementById('authBtn');
+    btn.disabled = true; btn.innerText = "İşleniyor...";
+
+    try {
+        const email = userToEmail(u);
+        if (isRegister) {
+            if (serverConfig.registration === 'off') return showError("Kayıtlar kapalı!");
+            if (u.toLowerCase() === ADMIN_USERNAME.toLowerCase()) return showError("Bu isim kullanılamaz!");
+            const userCred = await createUserWithEmailAndPassword(auth, email, p);
+            await updateProfile(userCred.user, { displayName: u });
+            await set(ref(db, 'users/' + userCred.user.uid), {
+                username: u, email: email, role: 'user', createdAt: Date.now()
+            });
+            showToast("✅ Kayıt başarılı!", 'success');
+            isRegister = false; toggleAuthMode();
+        } else {
+            if (isBanned(u)) {
+                const b = bannedUsers[u];
+                const kalan = b.until === 0 ? 'Süresiz' : Math.ceil((b.until - Date.now()) / 60000) + ' dk';
+                return showError(`🚫 Banlı! Kalan: ${kalan}. Sebep: ${b.reason || '-'}`);
+            }
+            await signInWithEmailAndPassword(auth, email, p);
+        }
+    } catch (err) {
+        let msg = "Hata: ";
+        switch (err.code) {
+            case 'auth/user-not-found':
+            case 'auth/invalid-credential': msg = "Kullanıcı/şifre hatalı!"; break;
+            case 'auth/wrong-password': msg = "Şifre hatalı!"; break;
+            case 'auth/email-already-in-use': msg = "Bu isim alınmış!"; break;
+            case 'auth/weak-password': msg = "Şifre zayıf!"; break;
+            case 'auth/too-many-requests': msg = "Çok deneme!"; break;
+            case 'auth/unauthorized-domain': msg = "Domain yetkili değil! Firebase'de ekleyin."; break;
+            default: msg = "Hata: " + (err.message || 'Bilinmeyen');
+        }
+        showError(msg);
+    } finally { btn.disabled = false; btn.innerText = isRegister ? "Kayıt Ol" : "Giriş Yap"; }
+};
+
+window.logout = async function() {
+    if (!confirm("Oturumu kapatmak istediğine emin misin?")) return;
+    showToast("🚪 Çıkış yapılıyor...", 'warning');
+    try { await signOut(auth); } catch (e) {}
+    try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+    pendingUser = null; currentUser = null; currentUsername = null;
+    setTimeout(() => { location.reload(); }, 200);
+};
+
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        pendingUser = user;
+        let uName = user.displayName;
+        try {
+            const snap = await get(ref(db, 'users/' + user.uid));
+            if (snap.exists()) uName = snap.val().username || uName;
+        } catch (e) {}
+        if (!uName) uName = user.email.split('@')[0];
+
+        document.getElementById('savedAccountName').innerText = uName;
+        document.getElementById('savedAccountPrompt').style.display = 'block';
+        document.getElementById('authFormFields').style.display = 'none';
+        document.getElementById('authSub').innerText = "Kayıtlı Oturum";
+        document.getElementById('authScreen').classList.add('show');
+        document.getElementById('app').classList.remove('active');
+    } else {
+        currentUser = null; currentUsername = null; isAdmin = false; isMod = false; pendingUser = null;
+        document.getElementById('savedAccountPrompt').style.display = 'none';
+        document.getElementById('authFormFields').style.display = 'block';
+        document.getElementById('authSub').innerText = "Giriş Yap";
+        document.getElementById('authScreen').classList.add('show');
+        document.getElementById('app').classList.remove('active');
+    }
+});
+
+window.confirmSavedLogin = async function() {
+    if (!pendingUser) return;
+    const user = pendingUser;
+    currentUser = user;
+
+    try {
+        const snap = await get(ref(db, 'users/' + user.uid));
+        if (snap.exists()) {
+            const data = snap.val();
+            currentUsername = data.username || user.displayName || 'Kullanıcı';
+            isAdmin = data.role === 'admin' || data.username === ADMIN_USERNAME;
+            isMod = data.role === 'mod';
+            document.getElementById('settingsDate').innerText = data.createdAt ? new Date(data.createdAt).toLocaleDateString('tr-TR') : '-';
+        } else {
+            currentUsername = user.displayName || user.email.split('@')[0];
+            isAdmin = currentUsername === ADMIN_USERNAME;
+            await set(ref(db, 'users/' + user.uid), {
+                username: currentUsername, email: user.email,
+                role: isAdmin ? 'admin' : 'user', createdAt: Date.now()
+            });
+        }
+    } catch (e) { currentUsername = user.displayName || 'Kullanıcı'; }
+
+    if (isBanned(currentUsername)) {
+        showToast("🚫 Hesabınız banlı!", 'error');
+        await signOut(auth);
+        return;
+    }
+
+    document.getElementById('authScreen').classList.remove('show');
+    document.getElementById('app').classList.add('active');
+    document.getElementById('settingsUser').innerText = currentUsername;
+    const roleText = isAdmin ? '👑 Admin' : (isMod ? '🛡️ Mod' : 'Kullanıcı');
+    document.getElementById('settingsRole').innerText = roleText;
+    document.getElementById('settingsRole').style.color = isAdmin ? 'var(--admin)' : (isMod ? 'var(--mod)' : 'var(--text)');
+
+    document.getElementById('adminPanel').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('kanalAddHeader').style.display = isAdmin ? 'flex' : 'none';
+
+    startApp();
+};
+
+window.switchAccountPrompt = async function() {
+    await signOut(auth);
+    pendingUser = null;
+    document.getElementById('savedAccountPrompt').style.display = 'none';
+    document.getElementById('authFormFields').style.display = 'block';
+    document.getElementById('authSub').innerText = "Giriş Yap";
+};
+
+function startApp() {
+    initialLoadMessages = true;
+    listenConfig();
+    listenKanallar();
+    listenFriends();
+    listenUsers();
+    listenMuted();
+    listenGlow();
+    listenMessages();
+    listenDMs();
+    listenGroups();
+    loadTheme();
+    updateStats();
+    createDefaultKanallar();
+}
+
+window.goGeneral = function() {
+    currentKanal = 'genel'; dmTarget = null; groupTarget = null;
+    switchTab('chat', document.querySelector('.side-item[data-tab="chat"]'));
+    listenMessages();
+    updateInputBar();
+    highlightKanal('genel');
+};
+
+function highlightKanal(name) {
+    document.querySelectorAll('.kanal-btn').forEach(b => b.classList.remove('active'));
+    if (!name) return;
+    const el = document.querySelector(`.kanal-btn[data-ch="${name}"]`);
+    if (el) el.classList.add('active');
+}
+
+function updateInputBar() {
+    const inputBar = document.getElementById('inputBar');
+    const ch = allKanallar.find(c => c.name === currentKanal);
+    if (dmTarget || groupTarget) {
+        inputBar.innerHTML = `
+            <input type="text" id="chatInput" class="inp" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter') sendMsg()">
+            <button class="send-btn" onclick="sendMsg()">➤</button>
+        `;
+        return;
+    }
+    if (ch && ch.adminOnly && !isAdmin && !isMod) {
+        inputBar.innerHTML = '<div class="locked-chat">🔒 Sadece admin/mod yazabilir</div>';
+    } else {
+        inputBar.innerHTML = `
+            <input type="text" id="chatInput" class="inp" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter') sendMsg()">
+            <button class="send-btn" onclick="sendMsg()">➤</button>
+        `;
+    }
+}
+
+function listenConfig() {
+    if (unsubConfig) unsubConfig();
+    unsubConfig = onValue(ref(db, 'settings'), (snap) => {
+        serverConfig = {};
+        if (snap.exists()) serverConfig = snap.val();
+        if (document.getElementById('cfgProfanity')) document.getElementById('cfgProfanity').value = serverConfig.profanity || 'on';
+        if (document.getElementById('cfgRegister')) document.getElementById('cfgRegister').value = serverConfig.registration || 'on';
+    });
+}
+
+window.saveConfig = async function(key, value) {
+    if (!isAdmin) return;
+    try { await set(ref(db, 'settings/' + key), value); showToast("✅ Ayar kaydedildi", 'success'); }
+    catch (e) { showToast("Hata!", 'error'); }
+};
+
+window.sendAnnouncement = async function() {
+    if (!isAdmin) return;
+    const text = document.getElementById('announcementText').value.trim();
+    if (!text) return showToast("Mesaj gir!", 'error');
+    try {
+        await systemMessage(text);
+        document.getElementById('announcementText').value = '';
+        showToast("📢 Duyuru gönderildi!", 'success');
+    } catch (e) { showToast("Hata!", 'error'); }
+};
+
+window.setTheme = function(theme) {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    if (currentUser) update(ref(db, 'users/' + currentUser.uid), { theme: theme });
+    showToast("🎨 Tema: " + theme, 'success');
+    document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.theme === theme));
+};
+
+function loadTheme() {
+    const theme = localStorage.getItem('theme') || serverConfig.defaultTheme || 'blue';
+    document.body.setAttribute('data-theme', theme);
+    document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.theme === theme));
+}
+
+function listenKanallar() {
+    if (unsubKanallar) unsubKanallar();
+    unsubKanallar = onValue(ref(db, 'kanallar'), (snap) => {
+        allKanallar = [];
+        const list = document.getElementById('rightKanallarList');
+        list.innerHTML = '';
+        if (!snap.exists()) {
+            list.innerHTML = '<div class="kanallar-empty">Kanal yok</div>';
+            return;
+        }
+        snap.forEach(c => {
+            const ch = { id: c.key, ...c.val() };
+            allKanallar.push(ch);
+            const isAdminOnly = ch.adminOnly === true;
+            const btn = document.createElement('div');
+            btn.className = 'kanal-btn' + (currentKanal === ch.name ? ' active' : '');
+            btn.dataset.ch = ch.name;
+            btn.innerHTML = `<span>#${escapeHtml(ch.name)}</span>${isAdminOnly ? '<span class="lock">🔒</span>' : ''}`;
+            btn.onclick = () => {
+                currentKanal = ch.name;
+                dmTarget = null; groupTarget = null;
+                switchTab('chat', document.querySelector('.side-item[data-tab="chat"]'));
+                listenMessages();
+                updateInputBar();
+                highlightKanal(ch.name);
+            };
+            list.appendChild(btn);
+        });
+        updateInputBar();
+    });
+}
+
+window.addKanal = async function() {
+    if (!isAdmin) return showToast("Sadece admin kanal ekleyebilir!", 'error');
+    const inp = document.getElementById('newKanalInp');
+    const chName = inp.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    if (!chName || chName.length < 2) return showToast("En az 2 karakter!", 'error');
+    if (allKanallar.find(c => c.name === chName)) return showToast("Kanal zaten var!", 'error');
+    if (containsBadWord(chName)) return showToast("Uygun değil!", 'error');
+    try {
+        await set(ref(db, 'kanallar/' + chName), { name: chName, createdAt: Date.now(), createdBy: currentUsername });
+        inp.value = '';
+        showToast("✅ Kanal: #" + chName, 'success');
+    } catch (err) { showToast("Hata!", 'error'); }
+};
+
+function listenMessages() {
+    if (unsubMessages) unsubMessages();
+    const list = document.getElementById('messagesList');
+    list.innerHTML = '<div class="loading"><div class="spinner"></div>Yükleniyor...</div>';
+
+    unsubMessages = onValue(ref(db, 'messages'), (snap) => {
+        list.innerHTML = '';
+        const all = [];
+        if (snap.exists()) snap.forEach(c => all.push({ id: c.key, ...c.val() }));
+
+        const filtered = all.filter(m => {
+            if (dmTarget) {
+                return (m.sender === currentUsername && m.dmTarget === dmTarget) ||
+                       (m.sender === dmTarget && m.dmTarget === currentUsername);
+            }
+            if (groupTarget) {
+                return m.groupId === groupTarget;
+            }
+            const mKanal = m.kanal || m.channel || 'genel';
+            return mKanal === currentKanal && !m.dmTarget && !m.groupId;
+        }).sort((a, b) => a.time - b.time).slice(-200);
+
+        if (filtered.length === 0) {
+            list.innerHTML = '<div class="empty-state">💬 Henüz mesaj yok</div>';
+            return;
+        }
+
+        filtered.forEach(m => {
+            if (m.isSystem) {
+                const sys = document.createElement('div');
+                sys.className = 'sys-msg'; sys.textContent = '📢 ' + m.text;
+                list.appendChild(sys); return;
+            }
+
+            const isSelf = m.sender === currentUsername;
+            const isAdminMsg = m.isAdmin === true;
+            const isModMsg = m.isMod === true;
+            const isGlow = isGlowing(m.sender);
+
+            let classes = 'msg-box';
+            if (isSelf) classes += ' self';
+            if (isAdminMsg) classes += ' admin-msg';
+            else if (isModMsg) classes += ' mod-msg';
+            if (isGlow && !isAdminMsg) classes += ' glow-msg';
+
+            const card = document.createElement('div');
+            card.className = classes;
+
+            let userClasses = 'msg-user';
+            let prefix = '';
+            if (isAdminMsg) { userClasses += ' admin'; prefix = '<span class="msg-crown">👑</span>'; }
+            else if (isModMsg) { userClasses += ' mod'; prefix = '<span class="msg-crown">🛡️</span>'; }
+            if (isGlow) userClasses += ' glowing';
+
+            const userDisplay = `<span class="${userClasses}" onclick="showProfile('${escapeHtml(m.sender)}')">${prefix}${escapeHtml(m.sender)}</span>`;
+            const canDelete = isAdmin || isSelf || isMod;
+
+            let replyHtml = '';
+            if (m.replyTo) {
+                replyHtml = `<div class="msg-reply-info"><span class="reply-user">↪ ${escapeHtml(m.replyTo.sender)}</span>: ${escapeHtml((m.replyTo.text || '').substring(0, 50))}</div>`;
+            }
+
+            card.innerHTML = `
+                ${replyHtml}
+                <div class="msg-head">${userDisplay}<span class="msg-time">${formatTime(m.time)}</span></div>
+                <div class="msg-text">${escapeHtml(m.text)}</div>
+                <div class="msg-actions">
+                    <button class="msg-action" onclick="replyToMsg('${m.id}', '${escapeHtml(m.sender)}', '${escapeHtml(m.text).replace(/'/g, "\\'")}')">↩</button>
+                    ${canDelete ? `<button class="msg-action" onclick="deleteMessage('${m.id}')">🗑</button>` : ''}
+                </div>
+            `;
+            list.appendChild(card);
+        });
+        list.scrollTop = list.scrollHeight;
+    });
+}
+
+window.replyToMsg = function(msgId, sender, text) {
+    replyTo = { sender, text };
+    document.getElementById('replyUser').textContent = sender;
+    document.getElementById('replyText').textContent = text.substring(0, 50);
+    document.getElementById('replyPreview').classList.add('show');
+    const inp = document.getElementById('chatInput');
+    if (inp) inp.focus();
+};
+
+window.cancelReply = function() { replyTo = null; document.getElementById('replyPreview').classList.remove('show'); };
+
+window.sendMsg = async function() {
+    const input = document.getElementById('chatInput');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text || !currentUser) return;
+
+    if (isMuted(currentUsername)) {
+        const m = mutedUsers[currentUsername];
+        const kalan = m.until === 0 ? 'Süresiz' : Math.ceil((m.until - Date.now()) / 60000) + ' dk';
+        showToast(`🔇 Susturuldun! Kalan: ${kalan}`, 'error');
+        return;
+    }
+    if (containsBadWord(text)) { showToast("🚫 Küfür yasak!", 'error'); return; }
+
+    const ch = allKanallar.find(c => c.name === currentKanal);
+    if (ch && ch.adminOnly && !isAdmin && !isMod) {
+        showToast("🔒 Sadece admin/mod yazabilir!", 'error');
+        return;
+    }
+
+    const msgData = {
+        sender: currentUsername,
+        senderUid: currentUser.uid,
+        text: text,
+        time: Date.now(),
+        isAdmin: isAdmin || false,
+        isMod: isMod || false
+    };
+
+    if (dmTarget) msgData.dmTarget = dmTarget;
+    else if (groupTarget) msgData.groupId = groupTarget;
+    else msgData.kanal = currentKanal || 'genel';
+
+    if (replyTo) msgData.replyTo = { sender: replyTo.sender, text: replyTo.text };
+
+    try {
+        await push(ref(db, 'messages'), msgData);
+        input.value = ''; cancelReply(); updateStats();
+    } catch (err) { showToast("❌ Gönderilemedi: " + err.message, 'error'); }
+};
+
+window.deleteMessage = async function(msgId) {
+    if (!confirm("Mesajı sil?")) return;
+    try { await remove(ref(db, 'messages/' + msgId)); showToast("✅ Silindi", 'success'); }
+    catch (err) { showToast("Hata!", 'error'); }
+};
+
+function listenUsers() {
+    if (unsubUsers) unsubUsers();
+    unsubUsers = onValue(ref(db, 'users'), (snap) => {
+        allUsers = [];
+        if (snap.exists()) snap.forEach(c => allUsers.push({ uid: c.key, ...c.val() }));
+        if (isAdmin) renderAdminUsers();
+    });
+}
+
+function listenMuted() {
+    if (unsubMuted) unsubMuted();
+    unsubMuted = onValue(ref(db, 'muted'), (snap) => {
+        mutedUsers = {};
+        if (snap.exists()) snap.forEach(c => mutedUsers[c.key] = c.val());
+        if (isAdmin) renderAdminUsers();
+    });
+    onValue(ref(db, 'banned'), (snap) => {
+        bannedUsers = {};
+        if (snap.exists()) snap.forEach(c => bannedUsers[c.key] = c.val());
+        if (isAdmin) renderAdminUsers();
+    });
+}
+
+function listenGlow() {
+    if (unsubGlow) unsubGlow();
+    unsubGlow = onValue(ref(db, 'glow'), (snap) => {
+        glowingUsers = {};
+        if (snap.exists()) snap.forEach(c => glowingUsers[c.key] = c.val());
+    });
+}
+
+window.adminTab = function(tab) {
+    document.getElementById('admin-tab-users').style.display = tab === 'users' ? 'block' : 'none';
+    document.getElementById('admin-tab-settings').style.display = tab === 'settings' ? 'block' : 'none';
+    document.getElementById('admin-tab-appearance').style.display = tab === 'appearance' ? 'block' : 'none';
+    document.querySelectorAll('[id^="atab-"]').forEach(b => b.style.background = '');
+    document.getElementById('atab-' + tab).style.background = 'var(--accent)';
+    if (tab === 'users') renderAdminUsers();
+};
+
+function renderAdminUsers() {
+    if (!isAdmin) return;
+    const list = document.getElementById('adminUserList');
+    if (!list) return;
+    const search = (document.getElementById('adminSearchUser').value || '').toLowerCase();
+    list.innerHTML = '';
+
+    const sorted = [...allUsers].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    sorted.forEach(u => {
+        if (search && !u.username.toLowerCase().includes(search)) return;
+        const roleIcon = u.role === 'admin' ? '👑' : (u.role === 'mod' ? '🛡️' : '👤');
+        const isM = isMuted(u.username);
+        const isB = isBanned(u.username);
+        const isG = isGlowing(u.username);
+        const statusColor = isB ? 'var(--danger)' : (isM ? 'var(--warning)' : 'var(--success)');
+        const statusIcon = isB ? '🚫' : (isM ? '🔇' : '✅');
+
+        const row = document.createElement('div');
+        row.className = 'admin-user-row';
+        row.innerHTML = `
+            <div class="row-avatar ${isG ? 'glowing' : ''}" style="width:22px;height:22px;font-size:9px;">${getInitials(u.username)}</div>
+            <div class="info">
+                <div class="u-name">${roleIcon} ${escapeHtml(u.username)} ${isG ? '✨' : ''}</div>
+                <div class="u-sub" style="color:${statusColor};">${statusIcon} ${u.role || 'user'}</div>
+            </div>
+            <div class="actions">
+                <button class="mini-btn" onclick="openUserDetail('${escapeHtml(u.username)}')">⚙️</button>
+            </div>
+        `;
+        list.appendChild(row);
+    });
+}
+
+window.openUserDetail = function(username) {
+    if (!isAdmin) return;
+    const user = allUsers.find(u => u.username === username);
+    if (!user) return;
+    const isM = isMuted(username);
+    const isB = isBanned(username);
+    const isG = isGlowing(username);
+
+    let html = `
+        <div class="profile-header">
+            <div class="profile-avatar ${isG ? 'glowing' : ''}">${getInitials(username)}</div>
+            <div class="profile-name ${isG ? 'glowing' : ''}">${escapeHtml(username)} ${isG ? '✨' : ''}</div>
+            <div class="profile-role ${user.role === 'admin' ? 'admin' : (user.role === 'mod' ? 'mod' : '')}">${user.role === 'admin' ? '👑 Admin' : (user.role === 'mod' ? '🛡️ Mod' : '👤 Kullanıcı')}</div>
+        </div>
+        <div class="profile-info">
+            <div class="profile-info-row"><span class="setting-label">Katılma</span><span>${user.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : '-'}</span></div>
+            <div class="profile-info-row"><span class="setting-label">Durum</span><span>${isB ? '🚫 Banlı' : (isM ? '🔇 Susturulmuş' : '✅ Aktif')}</span></div>
+            <div class="profile-info-row"><span class="setting-label">Parıltı</span><span>${isG ? '✨ Açık' : '❌ Kapalı'}</span></div>
+        </div>
+    `;
+
+    if (username !== currentUsername) {
+        html += `
+            <div class="admin-panel" style="margin-top:8px;">
+                <div class="admin-panel-title">⚙️ İşlemler</div>
+                <button class="btn" style="background:var(--warning);color:#000;margin-bottom:4px;" onclick="openMuteModal('${escapeHtml(username)}', 'mute')">🔇 Sustur</button>
+                <button class="btn" style="background:var(--danger);margin-bottom:4px;" onclick="openMuteModal('${escapeHtml(username)}', 'ban')">🚫 Banla</button>
+                <button class="btn" style="background:var(--success);color:#000;margin-bottom:4px;" onclick="clearPunishment('${escapeHtml(username)}')">🔊 Ceza Kaldır</button>
+                <button class="btn" style="background:var(--accent);margin-bottom:4px;" onclick="openRoleModal('${escapeHtml(username)}')">🎭 Rol Ver</button>
+                <button class="btn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);margin-bottom:4px;" onclick="toggleGlow('${escapeHtml(username)}')">${isG ? '❌ Parıltıyı Kaldır' : '✨ Parıltı Ver'}</button>
+            </div>
+        `;
+    }
+
+    document.getElementById('userDetailBody').innerHTML = html;
+    closeModal('adminModal');
+    openModal('userDetailModal');
+};
+
+window.toggleGlow = async function(username) {
+    if (!isAdmin) return;
+    try {
+        const current = isGlowing(username);
+        if (current) { await remove(ref(db, 'glow/' + username)); await systemMessage(`✨ ${username} parıltısı kaldırıldı.`); }
+        else { await set(ref(db, 'glow/' + username), true); await systemMessage(`✨ ${username} kullanıcısına parıltı verildi!`); }
+        showToast("✅ Güncellendi", 'success');
+        closeModal('userDetailModal');
+    } catch (e) { showToast("Hata!", 'error'); }
+};
+
+window.clearPunishment = async function(username) {
+    if (!isAdmin) return;
+    try {
+        await remove(ref(db, 'muted/' + username));
+        await remove(ref(db, 'banned/' + username));
+        await systemMessage(`🔊 ${username} cezası kaldırıldı.`);
+        showToast("✅ Kaldırıldı", 'success');
+        closeModal('userDetailModal');
+    } catch (e) { showToast("Hata!", 'error'); }
+};
+
+window.showProfile = function(username) {
+    if (username === currentUsername) { openModal('settingsModal'); return; }
+    const user = allUsers.find(u => u.username === username);
+    const isThisAdmin = user && user.role === 'admin' || username === ADMIN_USERNAME;
+    const isThisMod = user && user.role === 'mod';
+    const isFriend = myFriends.some(f => f.name === username);
+    const isG = isGlowing(username);
+
+    let html = `
+        <div class="profile-header">
+            <div class="profile-avatar ${isG ? 'glowing' : ''}">${getInitials(username)}</div>
+            <div class="profile-name ${isG ? 'glowing' : ''}">${escapeHtml(username)} ${isG ? '✨' : ''}</div>
+            <div class="profile-role ${isThisAdmin ? 'admin' : (isThisMod ? 'mod' : '')}">${isThisAdmin ? '👑 Admin' : (isThisMod ? '🛡️ Mod' : '👤 Kullanıcı')}</div>
+        </div>
+        <div class="profile-info">
+            <div class="profile-info-row"><span class="setting-label">Katılma</span><span>${user && user.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : '-'}</span></div>
+            <div class="profile-info-row"><span class="setting-label">Durum</span><span>${isMuted(username) ? '🔇 Susturulmuş' : (isBanned(username) ? '🚫 Banlı' : '✅ Aktif')}</span></div>
+        </div>
+    `;
+
+    if (!isAdmin && !isMod) {
+        if (!isFriend) html += `<button class="btn" style="margin-top:7px;" onclick="addFriendByName('${escapeHtml(username)}')">👥 Arkadaş Ekle</button>`;
+        else html += `<div style="text-align:center;color:var(--success);margin-top:7px;font-size:10px;">✅ Arkadaşsınız</div>`;
+        html += `<button class="btn" style="margin-top:5px;background:var(--accent);" onclick="openDM('${escapeHtml(username)}')">✉️ Mesaj Gönder</button>`;
+    }
+
+    if (isAdmin && username !== currentUsername) {
+        html += `<button class="btn" style="margin-top:7px;background:var(--warning);color:#000;" onclick="openUserDetail('${escapeHtml(username)}')">⚙️ Yönet</button>`;
+    }
+
+    document.getElementById('profileBody').innerHTML = html;
+    openModal('profileModal');
+};
+
+window.addFriendByName = async function(target) {
+    if (target === currentUsername) return;
+    if (myFriends.find(f => f.name === target)) return showToast("Zaten arkadaş!", 'error');
+    try {
+        await set(ref(db, 'friends/' + currentUser.uid + '/' + target), { name: target, addedAt: Date.now() });
+        showToast("✅ " + target + " eklendi!", 'success');
+        closeModal('profileModal');
+    } catch (err) { showToast("Hata!", 'error'); }
+};
+
+window.openMuteModal = function(u, type) {
+    if (!isAdmin) return;
+    muteTarget = u;
+    document.getElementById('muteTitle').innerText = type === 'ban' ? '🚫 Banla' : '🔇 Sustur';
+    openModal('muteModal');
+};
+
+window.applyMute = async function() {
+    if (!isAdmin || !muteTarget) return;
+    const mins = parseInt(document.getElementById('muteDuration').value) || 60;
+    const reason = document.getElementById('muteReason').value || 'Kural ihlali';
+    const until = mins === 0 ? 0 : Date.now() + (mins * 60 * 1000);
+    try {
+        await set(ref(db, 'muted/' + muteTarget), { until, reason, by: currentUsername });
+        const sure = mins === 0 ? 'süresiz' : mins + ' dakika';
+        await systemMessage(`🔇 ${muteTarget} ${sure} susturuldu. Sebep: ${reason}`);
+        showToast(`🔇 ${muteTarget} susturuldu`, 'success');
+        closeModal('muteModal'); closeModal('userDetailModal');
+    } catch (e) { showToast("Hata!", 'error'); }
+};
+
+window.applyBan = async function() {
+    if (!isAdmin || !muteTarget) return;
+    const mins = parseInt(document.getElementById('muteDuration').value) || 1440;
+    const reason = document.getElementById('muteReason').value || 'Kural ihlali';
+    const until = mins === 0 ? 0 : Date.now() + (mins * 60 * 1000);
+    try {
+        await set(ref(db, 'banned/' + muteTarget), { until, reason, by: currentUsername });
+        const sure = mins === 0 ? 'süresiz' : mins + ' dakika';
+        await systemMessage(`🚫 ${muteTarget} ${sure} banlandı. Sebep: ${reason}`);
+        showToast(`🚫 ${muteTarget} banlandı`, 'success');
+        closeModal('muteModal'); closeModal('userDetailModal');
+    } catch (e) { showToast("Hata!", 'error'); }
+};
+
+window.openRoleModal = function(u) {
+    if (!isAdmin) return;
+    roleTarget = u;
+    document.getElementById('roleTargetName').textContent = u;
+    openModal('roleModal');
+};
+
+window.setRole = async function(role) {
+    if (!isAdmin || !roleTarget) return;
+    const user = allUsers.find(x => x.username === roleTarget);
+    if (!user) return showToast("Kullanıcı yok!", 'error');
+    try {
+        await update(ref(db, 'users/' + user.uid), { role: role });
+        const roleText = role === 'admin' ? '👑 Admin' : (role === 'mod' ? '🛡️ Moderatör' : '👤 Kullanıcı');
+        await systemMessage(`🎭 ${roleTarget} kullanıcısına "${roleText}" rolü verildi.`);
+        showToast("✅ Rol güncellendi!", 'success');
+        closeModal('roleModal'); closeModal('userDetailModal'); closeModal('profileModal');
+    } catch (e) { showToast("Hata!", 'error'); }
+};
+
+function listenFriends() {
+    if (unsubFriends) unsubFriends();
+    unsubFriends = onValue(ref(db, 'friends/' + currentUser.uid), (snap) => {
+        myFriends = [];
+        const list = document.getElementById('friendsList');
+        list.innerHTML = '';
+        if (snap.exists()) snap.forEach(c => myFriends.push({ id: c.key, ...c.val() }));
+
+        document.getElementById('friendBadge').style.display = myFriends.length > 0 ? 'flex' : 'none';
+        document.getElementById('friendBadge').innerText = myFriends.length;
+
+        if (myFriends.length === 0) { list.innerHTML = '<div class="empty-state">👥 Arkadaş yok</div>'; return; }
+
+        myFriends.forEach(f => {
+            const isG = isGlowing(f.name);
+            const row = document.createElement('div');
+            row.className = 'row-item';
+            row.innerHTML = `
+                <div class="row-avatar ${isG ? 'glowing' : ''}" onclick="showProfile('${escapeHtml(f.name)}')">${getInitials(f.name)}</div>
+                <div class="row-info" onclick="showProfile('${escapeHtml(f.name)}')">
+                    <div class="row-name ${isG ? 'glowing' : ''}">${escapeHtml(f.name)} ${isG ? '✨' : ''}</div>
+                    <div class="row-sub">Arkadaş</div>
+                </div>
+                <div class="row-actions">
+                    <button class="mini-btn" onclick="openDM('${escapeHtml(f.name)}')">✉</button>
+                    <button class="mini-btn danger" onclick="removeFriend('${escapeHtml(f.name)}')">Sil</button>
+                </div>
+            `;
+            list.appendChild(row);
+        });
+    });
+}
+
+window.addFriend = async function() {
+    const target = document.getElementById('friendInp').value.trim();
+    if (!target) return showToast("Kullanıcı adı gir!", 'error');
+    if (target === currentUsername) return showToast("Kendini ekleyemezsin!", 'error');
+    if (myFriends.find(f => f.name === target)) return showToast("Zaten arkadaş!", 'error');
+    try {
+        const usersSnap = await get(ref(db, 'users'));
+        let found = false;
+        if (usersSnap.exists()) usersSnap.forEach(c => { if (c.val().username === target) found = true; });
+        if (!found) return showToast("Kullanıcı yok!", 'error');
+        await set(ref(db, 'friends/' + currentUser.uid + '/' + target), { name: target, addedAt: Date.now() });
+        document.getElementById('friendInp').value = '';
+        showToast("✅ " + target + " eklendi!", 'success');
+    } catch (err) { showToast("Hata!", 'error'); }
+};
+
+window.removeFriend = async function(name) {
+    if (!confirm(name + " silinsin mi?")) return;
+    try { await remove(ref(db, 'friends/' + currentUser.uid + '/' + name)); showToast("✅ Silindi", 'success'); }
+    catch (err) { showToast("Hata!", 'error'); }
+};
+
+window.openDM = function(target) {
+    dmTarget = target; groupTarget = null; currentKanal = null;
+    switchTab('chat', document.querySelector('.side-item[data-tab="chat"]'));
+    listenMessages();
+    updateInputBar();
+    highlightKanal(null);
+    closeModal('profileModal');
+};
+
+function listenDMs() {
+    if (unsubDMs) unsubDMs();
+    unsubDMs = onValue(ref(db, 'messages'), (snap) => {
+        const list = document.getElementById('dmsList');
+        list.innerHTML = '';
+        const partners = new Set();
+        if (snap.exists()) snap.forEach(c => {
+            const m = c.val();
+            if (!m.dmTarget) return;
+            if (m.sender === currentUsername) partners.add(m.dmTarget);
+            else if (m.dmTarget === currentUsername) partners.add(m.sender);
+        });
+        if (partners.size === 0) { list.innerHTML = '<div class="empty-state">✉️ DM yok</div>'; return; }
+        partners.forEach(p => {
+            const isG = isGlowing(p);
+            const row = document.createElement('div');
+            row.className = 'row-item';
+            row.innerHTML = `
+                <div class="row-avatar ${isG ? 'glowing' : ''}">${getInitials(p)}</div>
+                <div class="row-info" onclick="openDM('${escapeHtml(p)}')">
+                    <div class="row-name ${isG ? 'glowing' : ''}">${escapeHtml(p)} ${isG ? '✨' : ''}</div>
+                    <div class="row-sub">Özel mesaj</div>
+                </div>
+                <div class="row-actions"><button class="mini-btn" onclick="openDM('${escapeHtml(p)}')">Aç</button></div>
+            `;
+            list.appendChild(row);
+        });
+    });
+}
+
+function listenGroups() {
+    if (unsubGroups) unsubGroups();
+    unsubGroups = onValue(ref(db, 'groups'), (snap) => {
+        myGroups = [];
+        const list = document.getElementById('groupsList');
+        list.innerHTML = '';
+        if (snap.exists()) {
+            snap.forEach(c => {
+                const g = c.val();
+                if (g.members && g.members.includes(currentUsername)) myGroups.push({ id: c.key, ...g });
+            });
+        }
+        if (myGroups.length === 0) { list.innerHTML = '<div class="empty-state">👨‍👩‍👦 Grup yok</div>'; return; }
+        myGroups.forEach(g => {
+            const row = document.createElement('div');
+            row.className = 'row-item';
+            row.innerHTML = `
+                <div class="row-avatar">👥</div>
+                <div class="row-info" onclick="openGroup('${g.id}')">
+                    <div class="row-name">${escapeHtml(g.name)}</div>
+                    <div class="row-sub">${g.members.length} üye</div>
+                </div>
+                <div class="row-actions">
+                    <button class="mini-btn" onclick="openGroup('${g.id}')">Aç</button>
+                    ${g.creator === currentUsername ? `<button class="mini-btn danger" onclick="deleteGroup('${g.id}')">Sil</button>` : ''}
+                </div>
+            `;
+            list.appendChild(row);
+        });
+    });
+}
+
+window.openGroupCreate = function() {
+    const list = document.getElementById('groupFriendList');
+    list.innerHTML = '';
+    if (myFriends.length === 0) { list.innerHTML = '<div class="empty-state">Önce arkadaş ekle</div>'; return; }
+    myFriends.forEach(f => {
+        const div = document.createElement('label');
+        div.className = 'group-checkbox';
+        div.innerHTML = `<input type="checkbox" value="${escapeHtml(f.name)}"> <span>${escapeHtml(f.name)}</span>`;
+        list.appendChild(div);
+    });
+    openModal('groupCreateModal');
+};
+
+window.createGroup = async function() {
+    const name = document.getElementById('groupNameInp').value.trim();
+    if (!name || name.length < 2) return showToast("En az 2 karakter!", 'error');
+    if (containsBadWord(name)) return showToast("Uygun değil!", 'error');
+    const checkboxes = document.querySelectorAll('#groupFriendList input[type="checkbox"]:checked');
+    const members = [currentUsername];
+    checkboxes.forEach(c => members.push(c.value));
+    if (members.length < 2) return showToast("En az 1 arkadaş seç!", 'error');
+    try {
+        const groupRef = push(ref(db, 'groups'));
+        await set(groupRef, { name, creator: currentUsername, members, createdAt: Date.now() });
+        document.getElementById('groupNameInp').value = '';
+        closeModal('groupCreateModal');
+        showToast("✅ Grup kuruldu!", 'success');
+    } catch (e) { showToast("Hata!", 'error'); }
+};
+
+window.openGroup = function(groupId) {
+    groupTarget = groupId; dmTarget = null; currentKanal = null;
+    const group = myGroups.find(g => g.id === groupId);
+    document.getElementById('panelTitle').innerText = '👥 ' + (group ? group.name : 'Grup');
+    document.getElementById('panelSub').innerText = group ? group.members.length + ' üye' : '';
+    document.querySelectorAll('.side-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('chatPanel').classList.add('active');
+    listenMessages();
+    updateInputBar();
+    highlightKanal(null);
+};
+
+window.deleteGroup = async function(groupId) {
+    if (!confirm("Grubu sil?")) return;
+    try { await remove(ref(db, 'groups/' + groupId)); showToast("✅ Silindi", 'success'); }
+    catch (e) { showToast("Hata!", 'error'); }
+};
+
+window.switchTab = function(tab, el) {
+    document.querySelectorAll('.side-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    if (el) el.classList.add('active');
+    const title = document.getElementById('panelTitle');
+    const sub = document.getElementById('panelSub');
+    if (tab === 'chat') {
+        document.getElementById('chatPanel').classList.add('active');
+        title.innerText = dmTarget ? "✉ " + dmTarget : (groupTarget ? "👥 Grup" : "#" + currentKanal);
+        sub.innerText = dmTarget ? "Özel mesaj" : (groupTarget ? "Grup" : "Sohbet");
+        updateInputBar();
+    } else if (tab === 'friends') {
+        document.getElementById('friendsPanel').classList.add('active');
+        title.innerText = "👥 Kişiler"; sub.innerText = myFriends.length + " arkadaş";
+    } else if (tab === 'dms') {
+        document.getElementById('dmsPanel').classList.add('active');
+        title.innerText = "✉️ Mesajlar";
+    } else if (tab === 'groups') {
+        document.getElementById('groupsPanel').classList.add('active');
+        title.innerText = "👨‍👩‍👦 Gruplar"; sub.innerText = myGroups.length + " grup";
+    }
+};
+
+async function createDefaultKanallar() {
+    try {
+        const snap = await get(ref(db, 'kanallar'));
+        if (!snap.exists()) {
+            await set(ref(db, 'kanallar/genel'), { name: 'genel', createdAt: Date.now(), createdBy: 'system' });
+            await set(ref(db, 'kanallar/duyuru'), { name: 'duyuru', createdAt: Date.now(), createdBy: 'system', adminOnly: true });
+            await set(ref(db, 'kanallar/sohbet'), { name: 'sohbet', createdAt: Date.now(), createdBy: 'system' });
+        }
+    } catch (e) {}
+}
+
+async function updateStats() {
+    try {
+        const snap = await get(ref(db, 'messages'));
+        let myMsgs = 0;
+        if (snap.exists()) snap.forEach(c => { if (c.val().sender === currentUsername) myMsgs++; });
+        document.getElementById('settingsMsgCount').innerText = myMsgs;
+    } catch (e) {}
+}
+
+window.openModal = function(id) { document.getElementById(id).classList.add('active'); };
+window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); };
+
+document.querySelectorAll('.modal').forEach(m => {
+    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('active'); });
+});
+
+document.getElementById('authP').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuth(); });
+</script>
+</body>
+</html>
